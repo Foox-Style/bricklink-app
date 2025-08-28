@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Read(/C:\\Users\\mikev\\Desktop/**)",
+      "Read(/C:\\Users\\mikev\\Desktop/**)",
+      "Read(/C:\\Users\\mikev\\Desktop/**)",
+      "Bash(move:*)",
+      "Bash(cmd /c:*)",
+      "Bash(copy main_app.py main_app_backup.py)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
