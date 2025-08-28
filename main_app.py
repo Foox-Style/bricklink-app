@@ -70,15 +70,109 @@ class BrickLinkStorageApp:
         )
         title_label.pack(pady=(15, 25))
         
+        # Content container with sidebar
+        content_container = ctk.CTkFrame(main_frame, fg_color="transparent")
+        content_container.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Sidebar
+        self.setup_sidebar(content_container)
+        
         # Create tabview
-        self.tabview = ctk.CTkTabview(main_frame, width=850, height=580)
-        self.tabview.pack(fill="both", expand=True, padx=5, pady=5)
+        self.tabview = ctk.CTkTabview(content_container, width=700, height=580)
+        self.tabview.pack(side="right", fill="both", expand=True, padx=(10, 0))
         
         # Setup tabs
         self.setup_file_tab()
-        self.setup_api_tab()
         self.setup_process_tab()
         self.setup_results_tab()
+        
+    def setup_sidebar(self, parent):
+        """Setup the navigation sidebar"""
+        self.sidebar = ctk.CTkFrame(parent, width=140, corner_radius=8)
+        self.sidebar.pack(side="left", fill="y", padx=(0, 10))
+        self.sidebar.pack_propagate(False)
+        
+        # Connection status indicator at top
+        self.connection_frame = ctk.CTkFrame(self.sidebar, height=50, corner_radius=6)
+        self.connection_frame.pack(pady=(15, 10), padx=10, fill="x")
+        self.connection_frame.pack_propagate(False)
+        
+        self.connection_dot = ctk.CTkLabel(
+            self.connection_frame,
+            text="●",
+            font=ctk.CTkFont(size=20),
+            text_color="red",
+            cursor="hand2"
+        )
+        self.connection_dot.pack(side="left", padx=(10, 5), pady=15)
+        
+        self.connection_text = ctk.CTkLabel(
+            self.connection_frame,
+            text="Not\nConnected",
+            font=ctk.CTkFont(size=10),
+            cursor="hand2"
+        )
+        self.connection_text.pack(side="left", pady=15)
+        
+        # Make connection indicator clickable
+        self.connection_dot.bind("<Button-1>", lambda e: self.show_api_settings())
+        self.connection_text.bind("<Button-1>", lambda e: self.show_api_settings())
+        self.connection_frame.bind("<Button-1>", lambda e: self.show_api_settings())
+        
+        # Sidebar title
+        sidebar_title = ctk.CTkLabel(
+            self.sidebar,
+            text="Functions",
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        sidebar_title.pack(pady=(10, 15))
+        
+        # Navigation buttons
+        self.nav_buttons = {}
+        
+        nav_items = [
+            ("File", "1. Select File", "📁"),
+            ("Process", "2. Process", "⚙️"),
+            ("Results", "3. Results", "📋")
+        ]
+        
+        for key, tab_name, icon in nav_items:
+            btn = ctk.CTkButton(
+                self.sidebar,
+                text=f"{icon}\n{key}",
+                width=110,
+                height=50,
+                command=lambda t=tab_name: self.switch_to_tab(t),
+                font=ctk.CTkFont(size=12),
+                corner_radius=6
+            )
+            btn.pack(pady=5, padx=10)
+            self.nav_buttons[key] = btn
+        
+        # Set initial selection
+        self.update_sidebar_selection("File")
+    
+    def switch_to_tab(self, tab_name):
+        """Switch to specified tab and update sidebar"""
+        self.tabview.set(tab_name)
+        
+        # Update sidebar selection
+        tab_key_map = {
+            "1. Select File": "File",
+            "2. Process": "Process",
+            "3. Results": "Results"
+        }
+        
+        selected_key = tab_key_map.get(tab_name, "File")
+        self.update_sidebar_selection(selected_key)
+    
+    def update_sidebar_selection(self, selected_key):
+        """Update sidebar button appearance to show selection"""
+        for key, btn in self.nav_buttons.items():
+            if key == selected_key:
+                btn.configure(fg_color=("gray75", "gray25"))
+            else:
+                btn.configure(fg_color=["#3B8ED0", "#1F6AA5"])
         
     def setup_file_tab(self):
         tab = self.tabview.add("1. Select File")
@@ -152,58 +246,73 @@ class BrickLinkStorageApp:
         ctk.CTkCheckBox(options_frame, text="Preview changes before saving", 
                        variable=self.preview_enabled).pack(padx=20, pady=(5, 15), anchor="w")
         
-    def setup_api_tab(self):
-        tab = self.tabview.add("2. API Setup")
+    def show_api_settings(self):
+        """Show API settings in a popup window"""
+        # Check if window already exists
+        if hasattr(self, 'api_window') and self.api_window.winfo_exists():
+            self.api_window.lift()
+            self.api_window.focus()
+            return
         
-        # Status indicator
-        self.api_status_frame = ctk.CTkFrame(tab)
-        self.api_status_frame.pack(fill="x", padx=20, pady=(20, 10))
+        # Create popup window
+        self.api_window = ctk.CTkToplevel(self.root)
+        self.api_window.title("BrickLink API Settings")
+        self.api_window.geometry("550x650")
+        self.api_window.resizable(False, False)
         
-        self.api_status_label = ctk.CTkLabel(
-            self.api_status_frame,
-            text="API Status: Not Connected",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            text_color="red"
+        # Make it modal
+        self.api_window.transient(self.root)
+        self.api_window.grab_set()
+        
+        # Center the window
+        self.api_window.after(100, lambda: self.center_window(self.api_window))
+        
+        # Main frame
+        main_frame = ctk.CTkFrame(self.api_window)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            main_frame,
+            text="BrickLink API Credentials",
+            font=ctk.CTkFont(size=18, weight="bold")
         )
-        self.api_status_label.pack(pady=10)
+        title_label.pack(pady=(15, 25))
         
         # Credentials frame
-        creds_frame = ctk.CTkFrame(tab)
+        creds_frame = ctk.CTkFrame(main_frame)
         creds_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkLabel(creds_frame, text="BrickLink API Credentials", 
-                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 20))
         
         # Grid for credentials
         cred_grid = ctk.CTkFrame(creds_frame, fg_color="transparent")
-        cred_grid.pack(fill="x", padx=20)
+        cred_grid.pack(fill="x", padx=20, pady=20)
         
         # Consumer Key
-        ctk.CTkLabel(cred_grid, text="Consumer Key:").grid(row=0, column=0, sticky="w", pady=5)
+        ctk.CTkLabel(cred_grid, text="Consumer Key:").grid(row=0, column=0, sticky="w", pady=8)
         self.consumer_key_entry = ctk.CTkEntry(cred_grid, textvariable=self.consumer_key, width=300)
-        self.consumer_key_entry.grid(row=0, column=1, padx=(10, 0), pady=5, sticky="ew")
+        self.consumer_key_entry.grid(row=0, column=1, padx=(10, 0), pady=8, sticky="ew")
         
         # Consumer Secret
-        ctk.CTkLabel(cred_grid, text="Consumer Secret:").grid(row=1, column=0, sticky="w", pady=5)
+        ctk.CTkLabel(cred_grid, text="Consumer Secret:").grid(row=1, column=0, sticky="w", pady=8)
         self.consumer_secret_entry = ctk.CTkEntry(cred_grid, textvariable=self.consumer_secret, 
                                                  show="*", width=300)
-        self.consumer_secret_entry.grid(row=1, column=1, padx=(10, 0), pady=5, sticky="ew")
+        self.consumer_secret_entry.grid(row=1, column=1, padx=(10, 0), pady=8, sticky="ew")
         
         # Token
-        ctk.CTkLabel(cred_grid, text="Token:").grid(row=2, column=0, sticky="w", pady=5)
+        ctk.CTkLabel(cred_grid, text="Token:").grid(row=2, column=0, sticky="w", pady=8)
         self.token_entry = ctk.CTkEntry(cred_grid, textvariable=self.token, width=300)
-        self.token_entry.grid(row=2, column=1, padx=(10, 0), pady=5, sticky="ew")
+        self.token_entry.grid(row=2, column=1, padx=(10, 0), pady=8, sticky="ew")
         
         # Token Secret
-        ctk.CTkLabel(cred_grid, text="Token Secret:").grid(row=3, column=0, sticky="w", pady=5)
+        ctk.CTkLabel(cred_grid, text="Token Secret:").grid(row=3, column=0, sticky="w", pady=8)
         self.token_secret_entry = ctk.CTkEntry(cred_grid, textvariable=self.token_secret, 
                                               show="*", width=300)
-        self.token_secret_entry.grid(row=3, column=1, padx=(10, 0), pady=5, sticky="ew")
+        self.token_secret_entry.grid(row=3, column=1, padx=(10, 0), pady=8, sticky="ew")
         
         cred_grid.columnconfigure(1, weight=1)
         
         # Buttons
-        button_frame = ctk.CTkFrame(creds_frame, fg_color="transparent")
+        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
         button_frame.pack(pady=20)
         
         self.connect_btn = ctk.CTkButton(
@@ -234,7 +343,7 @@ class BrickLinkStorageApp:
         load_btn.pack(side="left", padx=5)
         
         # Connection info
-        info_frame = ctk.CTkFrame(tab)
+        info_frame = ctk.CTkFrame(main_frame)
         info_frame.pack(fill="both", expand=True, padx=20, pady=10)
         
         ctk.CTkLabel(info_frame, text="Connection Information", 
@@ -243,8 +352,27 @@ class BrickLinkStorageApp:
         self.api_info_text = ctk.CTkTextbox(info_frame, height=200)
         self.api_info_text.pack(padx=20, pady=(0, 15), fill="both", expand=True)
         
+        # Close button
+        close_btn = ctk.CTkButton(
+            main_frame,
+            text="Close",
+            command=self.api_window.destroy,
+            width=100,
+            height=35
+        )
+        close_btn.pack(pady=10)
+    
+    def center_window(self, window):
+        """Center a window on the screen"""
+        window.update_idletasks()
+        width = window.winfo_width()
+        height = window.winfo_height()
+        x = (window.winfo_screenwidth() // 2) - (width // 2)
+        y = (window.winfo_screenheight() // 2) - (height // 2)
+        window.geometry(f'{width}x{height}+{x}+{y}')
+        
     def setup_process_tab(self):
-        tab = self.tabview.add("3. Process")
+        tab = self.tabview.add("2. Process")
         
         # Requirements check
         req_frame = ctk.CTkFrame(tab)
@@ -296,7 +424,7 @@ class BrickLinkStorageApp:
         self.log_text.pack(padx=20, pady=(0, 15), fill="both", expand=True)
         
     def setup_results_tab(self):
-        tab = self.tabview.add("4. Results")
+        tab = self.tabview.add("3. Results")
         
         # Summary section
         summary_frame = ctk.CTkFrame(tab)
@@ -468,10 +596,15 @@ Items by type:
             messagebox.showerror("Error", "Please fill in all API credentials")
             return
         
-        # Update UI
-        self.connect_btn.configure(state="disabled", text="Connecting...")
-        self.api_info_text.delete("1.0", tk.END)
-        self.api_info_text.insert("1.0", "Connecting to BrickLink API...\n")
+        # Update UI (only if elements exist)
+        if hasattr(self, 'connect_btn'):
+            self.connect_btn.configure(state="disabled", text="Connecting...")
+        if hasattr(self, 'api_info_text'):
+            self.api_info_text.delete("1.0", tk.END)
+            self.api_info_text.insert("1.0", "Connecting to BrickLink API...\n")
+        # Update sidebar connection indicator to show connecting status
+        self.connection_dot.configure(text_color="orange")
+        self.connection_text.configure(text="Connecting...")
         
         def connect_thread():
             try:
@@ -489,7 +622,8 @@ Items by type:
                 if success:
                     # Create location matcher and load inventory
                     self.location_matcher = LocationMatcher(self.api)
-                    self.root.after(0, lambda: self.api_info_text.insert(tk.END, "Loading inventory locations...\n"))
+                    if hasattr(self, 'api_info_text'):
+                        self.root.after(0, lambda: self.api_info_text.insert(tk.END, "Loading inventory locations...\n"))
                     
                     inv_success, inv_message = self.location_matcher.load_inventory_locations()
                     
@@ -519,15 +653,22 @@ Items by type:
     
     def connection_complete(self, success: bool, message: str):
         """Handle API connection completion"""
-        self.connect_btn.configure(state="normal", text="Connect & Test")
+        if hasattr(self, 'connect_btn'):
+            self.connect_btn.configure(state="normal", text="Connect & Test")
         
         if success:
-            self.api_status_label.configure(text="API Status: Connected ✓", text_color="green")
-            self.api_info_text.insert(tk.END, f"\n[SUCCESS] {message}")
+            if hasattr(self, 'api_info_text'):
+                self.api_info_text.insert(tk.END, f"\n[SUCCESS] {message}")
+            # Update sidebar connection indicator
+            self.connection_dot.configure(text_color="green")
+            self.connection_text.configure(text="Connected")
         else:
-            self.api_status_label.configure(text="API Status: Connection Failed", text_color="red")
-            self.api_info_text.insert(tk.END, f"\n[FAILED] {message}")
+            if hasattr(self, 'api_info_text'):
+                self.api_info_text.insert(tk.END, f"\n[FAILED] {message}")
             self.api_connected = False
+            # Update sidebar connection indicator
+            self.connection_dot.configure(text_color="red")
+            self.connection_text.configure(text="Failed")
         
         self.update_process_requirements()
     
@@ -560,7 +701,7 @@ Items by type:
             return
         
         # Switch to process tab
-        self.tabview.set("3. Process")
+        self.tabview.set("2. Process")
         
         # Update UI
         self.process_btn.configure(state="disabled", text="Processing...")
