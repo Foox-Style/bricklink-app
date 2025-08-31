@@ -8,7 +8,7 @@ import logging
 
 from shared.api_manager import APIManager
 from tools.feature1 import LocationAssignmentTool
-from tools.feature2 import Feature2Tool
+from tools.feature2 import RestockAnalysisTool
 from tools.feature3 import Feature3Tool
 
 # Configure logging
@@ -111,7 +111,7 @@ class BrickLinkToolsApp:
         self.tool_buttons = {}
         tools_info = [
             ("feature1", "📦 Location Assignment"),
-            ("feature2", "📊 Feature 2"), 
+            ("feature2", "📊 Restock Analysis"), 
             ("feature3", "⚡ Feature 3")
         ]
         
@@ -142,7 +142,7 @@ class BrickLinkToolsApp:
     def init_tools(self):
         """Initialize all tools"""
         self.tools["feature1"] = LocationAssignmentTool(self.tool_area, self.api_manager.get_api())
-        self.tools["feature2"] = Feature2Tool(self.tool_area, self.api_manager.get_api())
+        self.tools["feature2"] = RestockAnalysisTool(self.tool_area, self.api_manager.get_api())
         self.tools["feature3"] = Feature3Tool(self.tool_area, self.api_manager.get_api())
         
         # Hide all tools initially

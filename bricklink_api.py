@@ -156,6 +156,57 @@ class BrickLinkAPI:
         }
         
         return True, summary
+    
+    def get_orders(self, direction: str = "out", status: str = "COMPLETED") -> Tuple[bool, List[Dict]]:
+        """Get orders from the store
+        
+        Args:
+            direction: "in" for purchases, "out" for sales
+            status: Order status filter (PENDING, UPDATING, COMPLETED, etc.)
+        """
+        all_orders = []
+        page = 1
+        
+        while True:
+            params = {
+                "direction": direction,
+                "status": status,
+                "page": page
+            }
+            
+            success, data = self._make_request("/orders", params=params)
+            
+            if not success:
+                return False, data.get('error', 'Failed to fetch orders')
+            
+            orders = data.get('data', [])
+            if not orders:
+                break
+                
+            all_orders.extend(orders)
+            self.logger.info(f"Fetched orders page {page}, total orders so far: {len(all_orders)}")
+            
+            # Check if there are more pages
+            meta = data.get('meta', {})
+            current_page = meta.get('current_page', page)
+            total_pages = meta.get('total_pages', page)
+            
+            if current_page >= total_pages:
+                break
+                
+            page += 1
+        
+        self.logger.info(f"Total orders fetched: {len(all_orders)}")
+        return True, all_orders
+    
+    def get_order_items(self, order_id: str) -> Tuple[bool, List[Dict]]:
+        """Get items for a specific order"""
+        success, data = self._make_request(f"/orders/{order_id}/items")
+        
+        if success:
+            return True, data.get('data', [])
+        else:
+            return False, data.get('error', 'Failed to fetch order items')
 
 def create_sample_config():
     """Create a sample configuration file"""
