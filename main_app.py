@@ -70,31 +70,20 @@ class BrickLinkStorageApp:
         )
         title_label.pack(pady=(15, 25))
         
-        # Content container with sidebar
+        # Content container - single page layout
         content_container = ctk.CTkFrame(main_frame, fg_color="transparent")
         content_container.pack(fill="both", expand=True, padx=5, pady=5)
         
-        # Sidebar
-        self.setup_sidebar(content_container)
+        # Connection status at top
+        self.setup_connection_status(content_container)
         
-        # Create tabview
-        self.tabview = ctk.CTkTabview(content_container, width=700, height=580)
-        self.tabview.pack(side="right", fill="both", expand=True, padx=(10, 0))
+        # Setup single page content
+        self.setup_main_content(content_container)
         
-        # Setup tabs
-        self.setup_file_tab()
-        self.setup_process_tab()
-        self.setup_results_tab()
-        
-    def setup_sidebar(self, parent):
-        """Setup the navigation sidebar"""
-        self.sidebar = ctk.CTkFrame(parent, width=140, corner_radius=8)
-        self.sidebar.pack(side="left", fill="y", padx=(0, 10))
-        self.sidebar.pack_propagate(False)
-        
-        # Connection status indicator at top
-        self.connection_frame = ctk.CTkFrame(self.sidebar, height=50, corner_radius=6)
-        self.connection_frame.pack(pady=(15, 10), padx=10, fill="x")
+    def setup_connection_status(self, parent):
+        """Setup connection status indicator"""
+        self.connection_frame = ctk.CTkFrame(parent, height=50, corner_radius=6)
+        self.connection_frame.pack(fill="x", padx=20, pady=(0, 10))
         self.connection_frame.pack_propagate(False)
         
         self.connection_dot = ctk.CTkLabel(
@@ -104,12 +93,12 @@ class BrickLinkStorageApp:
             text_color="red",
             cursor="hand2"
         )
-        self.connection_dot.pack(side="left", padx=(10, 5), pady=15)
+        self.connection_dot.pack(side="left", padx=(15, 5), pady=15)
         
         self.connection_text = ctk.CTkLabel(
             self.connection_frame,
-            text="Not\nConnected",
-            font=ctk.CTkFont(size=10),
+            text="Not Connected - Click to configure API settings",
+            font=ctk.CTkFont(size=12),
             cursor="hand2"
         )
         self.connection_text.pack(side="left", pady=15)
@@ -118,133 +107,101 @@ class BrickLinkStorageApp:
         self.connection_dot.bind("<Button-1>", lambda e: self.show_api_settings())
         self.connection_text.bind("<Button-1>", lambda e: self.show_api_settings())
         self.connection_frame.bind("<Button-1>", lambda e: self.show_api_settings())
-        
-        # Sidebar title
-        sidebar_title = ctk.CTkLabel(
-            self.sidebar,
-            text="Functions",
-            font=ctk.CTkFont(size=16, weight="bold")
-        )
-        sidebar_title.pack(pady=(10, 15))
-        
-        # Navigation buttons
-        self.nav_buttons = {}
-        
-        nav_items = [
-            ("File", "1. Select File", "📁"),
-            ("Process", "2. Process", "⚙️"),
-            ("Results", "3. Results", "📋")
-        ]
-        
-        for key, tab_name, icon in nav_items:
-            btn = ctk.CTkButton(
-                self.sidebar,
-                text=f"{icon}\n{key}",
-                width=110,
-                height=50,
-                command=lambda t=tab_name: self.switch_to_tab(t),
-                font=ctk.CTkFont(size=12),
-                corner_radius=6
-            )
-            btn.pack(pady=5, padx=10)
-            self.nav_buttons[key] = btn
-        
-        # Set initial selection
-        self.update_sidebar_selection("File")
     
-    def switch_to_tab(self, tab_name):
-        """Switch to specified tab and update sidebar"""
-        self.tabview.set(tab_name)
-        
-        # Update sidebar selection
-        tab_key_map = {
-            "1. Select File": "File",
-            "2. Process": "Process",
-            "3. Results": "Results"
-        }
-        
-        selected_key = tab_key_map.get(tab_name, "File")
-        self.update_sidebar_selection(selected_key)
-    
-    def update_sidebar_selection(self, selected_key):
-        """Update sidebar button appearance to show selection"""
-        for key, btn in self.nav_buttons.items():
-            if key == selected_key:
-                btn.configure(fg_color=("gray75", "gray25"))
-            else:
-                btn.configure(fg_color=["#3B8ED0", "#1F6AA5"])
-        
-    def setup_file_tab(self):
-        tab = self.tabview.add("1. Select File")
-        
+    def setup_main_content(self, parent):
+        """Setup the main content area with all functionality on one page"""
         # File selection section
-        file_frame = ctk.CTkFrame(tab)
-        file_frame.pack(fill="x", padx=20, pady=20)
+        file_frame = ctk.CTkFrame(parent)
+        file_frame.pack(fill="x", padx=20, pady=10)
         
-        ctk.CTkLabel(file_frame, text="BSX File Selection", 
+        ctk.CTkLabel(file_frame, text="📁 BSX File Selection", 
                     font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10))
         
-        # Instructions
-        instructions = ctk.CTkLabel(
-            file_frame,
-            text="Select a BSX (BrickStore XML) file containing items that need storage locations.\nThe app will match items with your existing BrickLink inventory locations.",
-            font=ctk.CTkFont(size=12),
-            justify="center"
-        )
-        instructions.pack(pady=(0, 15))
-        
         # File drop area
-        self.file_drop_frame = ctk.CTkFrame(file_frame, height=120, fg_color=("gray90", "gray20"))
+        self.file_drop_frame = ctk.CTkFrame(file_frame, height=100, fg_color=("gray90", "gray20"))
         self.file_drop_frame.pack(fill="x", padx=20, pady=10)
         
         self.file_label = ctk.CTkLabel(
             self.file_drop_frame,
-            text="No file selected\nClick Browse to select a BSX file",
+            text="No file selected - Click Browse to select a BSX file",
             font=ctk.CTkFont(size=14),
             justify="center"
         )
         self.file_label.pack(expand=True)
         
-        # Browse button
+        # Browse and process buttons
+        button_frame = ctk.CTkFrame(file_frame, fg_color="transparent")
+        button_frame.pack(pady=15)
+        
         browse_btn = ctk.CTkButton(
-            file_frame,
+            button_frame,
             text="Browse BSX Files",
             command=self.browse_file,
             width=160,
             height=35,
             font=ctk.CTkFont(size=14)
         )
-        browse_btn.pack(pady=15)
+        browse_btn.pack(side="left", padx=5)
         
-        # File info display
-        self.file_info_frame = ctk.CTkFrame(tab)
-        self.file_info_frame.pack(fill="x", padx=20, pady=10)
+        self.process_btn = ctk.CTkButton(
+            button_frame,
+            text="⚙️ Process Locations",
+            command=self.start_processing_threaded,
+            width=160,
+            height=35,
+            font=ctk.CTkFont(size=14),
+            state="disabled"
+        )
+        self.process_btn.pack(side="left", padx=5)
         
-        ctk.CTkLabel(self.file_info_frame, text="File Information", 
+        self.save_results_btn = ctk.CTkButton(
+            button_frame,
+            text="💾 Save File",
+            command=self.save_results,
+            width=120,
+            height=35,
+            font=ctk.CTkFont(size=14),
+            state="disabled"
+        )
+        self.save_results_btn.pack(side="left", padx=5)
+        
+        # Processing log section
+        log_frame = ctk.CTkFrame(parent)
+        log_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        ctk.CTkLabel(log_frame, text="📋 Processing Log & Results", 
                     font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10))
         
-        self.file_info_text = ctk.CTkTextbox(self.file_info_frame, height=150)
-        self.file_info_text.pack(padx=20, pady=(0, 15), fill="x")
+        # Progress bar
+        self.progress_bar = ctk.CTkProgressBar(log_frame, width=500)
+        self.progress_bar.pack(padx=20, pady=10)
+        self.progress_bar.set(0)
+        
+        self.progress_status = ctk.CTkLabel(log_frame, text="Ready to start")
+        self.progress_status.pack(pady=5)
+        
+        # Combined log and results text area
+        self.log_text = ctk.CTkTextbox(log_frame, height=300)
+        self.log_text.pack(padx=20, pady=(0, 15), fill="both", expand=True)
         
         # Output options
-        options_frame = ctk.CTkFrame(tab)
+        options_frame = ctk.CTkFrame(parent)
         options_frame.pack(fill="x", padx=20, pady=10)
         
-        ctk.CTkLabel(options_frame, text="Output Options", 
+        ctk.CTkLabel(options_frame, text="⚙️ Output Options", 
                     font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10))
         
-        # Radio buttons for output mode
-        output_frame = ctk.CTkFrame(options_frame, fg_color="transparent")
-        output_frame.pack(fill="x", padx=20, pady=10)
+        output_controls = ctk.CTkFrame(options_frame, fg_color="transparent")
+        output_controls.pack(fill="x", padx=20, pady=(0, 15))
         
-        ctk.CTkRadioButton(output_frame, text="Create new file (recommended)", 
+        ctk.CTkRadioButton(output_controls, text="Create new file (recommended)", 
                           variable=self.output_mode, value="new").pack(anchor="w", pady=3)
-        ctk.CTkRadioButton(output_frame, text="Overwrite original file", 
+        ctk.CTkRadioButton(output_controls, text="Overwrite original file", 
                           variable=self.output_mode, value="overwrite").pack(anchor="w", pady=3)
         
-        # Preview checkbox
-        ctk.CTkCheckBox(options_frame, text="Preview changes before saving", 
-                       variable=self.preview_enabled).pack(padx=20, pady=(5, 15), anchor="w")
+        ctk.CTkCheckBox(output_controls, text="Preview changes before saving", 
+                       variable=self.preview_enabled).pack(anchor="w", pady=5)
+        
         
     def show_api_settings(self):
         """Show API settings in a popup window"""
@@ -371,104 +328,7 @@ class BrickLinkStorageApp:
         y = (window.winfo_screenheight() // 2) - (height // 2)
         window.geometry(f'{width}x{height}+{x}+{y}')
         
-    def setup_process_tab(self):
-        tab = self.tabview.add("2. Process")
         
-        # Requirements check
-        req_frame = ctk.CTkFrame(tab)
-        req_frame.pack(fill="x", padx=20, pady=20)
-        
-        ctk.CTkLabel(req_frame, text="Ready to Process?", 
-                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10))
-        
-        self.req_file_label = ctk.CTkLabel(req_frame, text="❌ No BSX file selected")
-        self.req_file_label.pack(pady=2, anchor="w", padx=20)
-        
-        self.req_api_label = ctk.CTkLabel(req_frame, text="❌ API not connected")
-        self.req_api_label.pack(pady=2, anchor="w", padx=20)
-        
-        # Process button
-        self.process_btn = ctk.CTkButton(
-            req_frame,
-            text="Start Processing",
-            command=self.start_processing_threaded,
-            width=200,
-            height=40,
-            font=ctk.CTkFont(size=16, weight="bold"),
-            state="disabled"
-        )
-        self.process_btn.pack(pady=20)
-        
-        # Progress section
-        progress_frame = ctk.CTkFrame(tab)
-        progress_frame.pack(fill="x", padx=20, pady=10)
-        
-        ctk.CTkLabel(progress_frame, text="Processing Progress", 
-                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10))
-        
-        self.progress_bar = ctk.CTkProgressBar(progress_frame, width=500)
-        self.progress_bar.pack(padx=20, pady=10)
-        self.progress_bar.set(0)
-        
-        self.progress_status = ctk.CTkLabel(progress_frame, text="Ready to start")
-        self.progress_status.pack(pady=5)
-        
-        # Log section
-        log_frame = ctk.CTkFrame(tab)
-        log_frame.pack(fill="both", expand=True, padx=20, pady=10)
-        
-        ctk.CTkLabel(log_frame, text="Processing Log", 
-                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10))
-        
-        self.log_text = ctk.CTkTextbox(log_frame, height=200)
-        self.log_text.pack(padx=20, pady=(0, 15), fill="both", expand=True)
-        
-    def setup_results_tab(self):
-        tab = self.tabview.add("3. Results")
-        
-        # Summary section
-        summary_frame = ctk.CTkFrame(tab)
-        summary_frame.pack(fill="x", padx=20, pady=20)
-        
-        ctk.CTkLabel(summary_frame, text="Processing Summary", 
-                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10))
-        
-        self.summary_text = ctk.CTkTextbox(summary_frame, height=150)
-        self.summary_text.pack(padx=20, pady=(0, 15), fill="x")
-        
-        # Details section
-        details_frame = ctk.CTkFrame(tab)
-        details_frame.pack(fill="both", expand=True, padx=20, pady=10)
-        
-        ctk.CTkLabel(details_frame, text="Detailed Results", 
-                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10))
-        
-        self.results_text = ctk.CTkTextbox(details_frame, height=250)
-        self.results_text.pack(padx=20, pady=(0, 10), fill="both", expand=True)
-        
-        # Action buttons
-        button_frame = ctk.CTkFrame(details_frame, fg_color="transparent")
-        button_frame.pack(pady=(0, 15))
-        
-        self.save_results_btn = ctk.CTkButton(
-            button_frame,
-            text="Save Updated File",
-            command=self.save_results,
-            width=150,
-            height=35,
-            state="disabled"
-        )
-        self.save_results_btn.pack(side="left", padx=5)
-        
-        self.export_log_btn = ctk.CTkButton(
-            button_frame,
-            text="Export Log",
-            command=self.export_log,
-            width=150,
-            height=35,
-            state="disabled"
-        )
-        self.export_log_btn.pack(side="left", padx=5)
         
     def browse_file(self):
         """Browse and select a BSX file"""
@@ -484,7 +344,7 @@ class BrickLinkStorageApp:
         if file_path:
             self.selected_file.set(file_path)
             self.load_bsx_file(file_path)
-            self.update_process_requirements()
+            self.update_ui_status()
     
     def load_bsx_file(self, file_path: str):
         """Load and analyze the BSX file"""
@@ -495,32 +355,18 @@ class BrickLinkStorageApp:
             if success:
                 # Update file label
                 filename = os.path.basename(file_path)
-                self.file_label.configure(text=f"✓ {filename}\nClick to select a different file")
+                self.file_label.configure(text=f"✓ {filename} - Ready to process")
                 
-                # Show file information
+                # Show file information in log
                 summary = self.bsx_handler.get_file_summary()
                 
-                info_text = f"""File: {filename}
-Path: {file_path}
-
-Summary:
-• Total items: {summary['total_items']}
-• Total quantity: {summary['total_quantity']}
-• Items with locations: {summary['items_with_locations']}
-• Items needing locations: {summary['items_without_locations']}
-
-Items by type:
-"""
-                for item_type, count in summary['by_type'].items():
-                    info_text += f"• {item_type}: {count}\n"
+                info_text = f"File loaded: {filename}\n"
+                info_text += f"• Total items: {summary['total_items']}\n"
+                info_text += f"• Items needing locations: {summary['items_without_locations']}\n"
+                info_text += f"• Items with locations: {summary['items_with_locations']}\n\n"
                 
-                info_text += f"\nBy condition:\n"
-                for condition, count in summary['by_condition'].items():
-                    cond_name = "New" if condition == "N" else "Used"
-                    info_text += f"• {cond_name}: {count}\n"
-                
-                self.file_info_text.delete("1.0", tk.END)
-                self.file_info_text.insert("1.0", info_text)
+                self.log_text.delete("1.0", tk.END)
+                self.log_text.insert("1.0", info_text)
                 
             else:
                 messagebox.showerror("Error Loading File", message)
@@ -602,7 +448,7 @@ Items by type:
         if hasattr(self, 'api_info_text'):
             self.api_info_text.delete("1.0", tk.END)
             self.api_info_text.insert("1.0", "Connecting to BrickLink API...\n")
-        # Update sidebar connection indicator to show connecting status
+        # Update connection indicator to show connecting status
         self.connection_dot.configure(text_color="orange")
         self.connection_text.configure(text="Connecting...")
         
@@ -659,39 +505,36 @@ Items by type:
         if success:
             if hasattr(self, 'api_info_text'):
                 self.api_info_text.insert(tk.END, f"\n[SUCCESS] {message}")
-            # Update sidebar connection indicator
+            # Update connection indicator
             self.connection_dot.configure(text_color="green")
-            self.connection_text.configure(text="Connected")
+            self.connection_text.configure(text="Connected - API ready")
         else:
             if hasattr(self, 'api_info_text'):
                 self.api_info_text.insert(tk.END, f"\n[FAILED] {message}")
             self.api_connected = False
-            # Update sidebar connection indicator
+            # Update connection indicator
             self.connection_dot.configure(text_color="red")
-            self.connection_text.configure(text="Failed")
+            self.connection_text.configure(text="Failed - Click to retry")
         
-        self.update_process_requirements()
+        self.update_ui_status()
     
-    def update_process_requirements(self):
-        """Update the process requirements display"""
+    def update_ui_status(self):
+        """Update UI status and button states"""
         file_ready = bool(self.bsx_handler and self.selected_file.get())
         api_ready = self.api_connected
         
-        if file_ready:
-            filename = os.path.basename(self.selected_file.get())
-            self.req_file_label.configure(text=f"✓ BSX file loaded: {filename}")
-        else:
-            self.req_file_label.configure(text="❌ No BSX file selected")
-        
-        if api_ready:
-            self.req_api_label.configure(text="✓ API connected and inventory loaded")
-        else:
-            self.req_api_label.configure(text="❌ API not connected")
-        
-        # Enable process button if both requirements are met
+        # Update progress status
         if file_ready and api_ready:
+            self.progress_status.configure(text="Ready to process - Click Process Locations")
             self.process_btn.configure(state="normal")
+        elif file_ready:
+            self.progress_status.configure(text="File ready - Connect API to enable processing")
+            self.process_btn.configure(state="disabled")
+        elif api_ready:
+            self.progress_status.configure(text="API ready - Select a BSX file to continue")
+            self.process_btn.configure(state="disabled")
         else:
+            self.progress_status.configure(text="Select file and connect API to begin")
             self.process_btn.configure(state="disabled")
     
     def start_processing_threaded(self):
@@ -699,9 +542,6 @@ Items by type:
         if not (self.bsx_handler and self.location_matcher):
             messagebox.showerror("Error", "Missing required components")
             return
-        
-        # Switch to process tab
-        self.tabview.set("2. Process")
         
         # Update UI
         self.process_btn.configure(state="disabled", text="Processing...")
@@ -747,55 +587,44 @@ Items by type:
             self.log_text.insert(tk.END, f"Success rate: {results['success_rate']}%\n")
             self.log_text.insert(tk.END, "\nSwitch to the Results tab to view detailed results and save the file.\n")
             
-            # Store results but don't switch tabs - let user choose
+            # Store results and display them
             self.processing_results = results
-            self.display_results(results)
+            self.display_results_in_log(results)
             
-            # Enable action buttons
+            # Enable save button
             self.save_results_btn.configure(state="normal")
-            self.export_log_btn.configure(state="normal")
             
         else:
             self.progress_status.configure(text="Processing failed")
             self.log_text.insert(tk.END, f"ERROR: {results}\n")
             messagebox.showerror("Processing Error", f"Processing failed: {results}")
     
-    def display_results(self, results):
-        """Display processing results in the results tab"""
+    def display_results_in_log(self, results):
+        """Display processing results in the log area"""
         # Summary
-        summary_text = f"""Processing Summary:
-
-• Items processed: {results['total_items_processed']}
-• Locations assigned: {results['locations_assigned']}
-• Items without matches: {results['no_location_found']}
-• Success rate: {results['success_rate']}%
-
-Mode: {'Preview (changes not saved)' if self.preview_enabled.get() else 'Final (changes applied)'}
-"""
-        
-        self.summary_text.delete("1.0", tk.END)
-        self.summary_text.insert("1.0", summary_text)
+        summary_text = f"\n=== PROCESSING COMPLETE ===\n\n"
+        summary_text += f"• Items processed: {results['total_items_processed']}\n"
+        summary_text += f"• Locations assigned: {results['locations_assigned']}\n"
+        summary_text += f"• Items without matches: {results['no_location_found']}\n"
+        summary_text += f"• Success rate: {results['success_rate']}%\n"
+        summary_text += f"• Mode: {'Preview (changes not saved)' if self.preview_enabled.get() else 'Final (changes applied)'}\n\n"
         
         # Detailed results
-        details_text = "=== LOCATION ASSIGNMENTS ===\n\n"
-        
         if results['assignment_details']:
+            summary_text += "=== LOCATION ASSIGNMENTS ===\n\n"
             for detail in results['assignment_details']:
-                details_text += f"✓ {detail['item_name']} ({detail['item_id']})\n"
-                details_text += f"  Color: {detail['color_name']}, Qty: {detail['quantity']}\n"
-                details_text += f"  → Location: '{detail['assigned_location']}'\n\n"
-        else:
-            details_text += "No locations were assigned.\n\n"
+                summary_text += f"✓ {detail['item_name']} ({detail['item_id']})\n"
+                summary_text += f"  Color: {detail['color_name']}, Qty: {detail['quantity']}\n"
+                summary_text += f"  -> Location: '{detail['assigned_location']}'\n\n"
         
         if results['items_without_matches']:
-            details_text += "=== ITEMS WITHOUT MATCHES ===\n\n"
+            summary_text += "=== ITEMS WITHOUT MATCHES ===\n\n"
             for item in results['items_without_matches']:
-                details_text += f"❌ {item['item_name']} ({item['item_id']})\n"
-                details_text += f"  Color: {item['color_name']}, Qty: {item['quantity']}\n"
-                details_text += f"  Reason: No existing inventory found for this item\n\n"
+                summary_text += f"❌ {item['item_name']} ({item['item_id']})\n"
+                summary_text += f"  Color: {item['color_name']}, Qty: {item['quantity']}\n"
+                summary_text += f"  Reason: No existing inventory found\n\n"
         
-        self.results_text.delete("1.0", tk.END)
-        self.results_text.insert("1.0", details_text)
+        self.log_text.insert(tk.END, summary_text)
     
     def save_results(self):
         """Save the processed BSX file"""
@@ -833,32 +662,6 @@ Mode: {'Preview (changes not saved)' if self.preview_enabled.get() else 'Final (
         except Exception as e:
             messagebox.showerror("Error", f"Unexpected error while saving: {str(e)}")
     
-    def export_log(self):
-        """Export the processing log to a text file"""
-        try:
-            log_content = self.log_text.get("1.0", tk.END)
-            results_content = self.results_text.get("1.0", tk.END)
-            
-            full_log = f"BrickLink Storage Location Auto-Populator - Processing Log\n"
-            full_log += f"Generated: {tk.datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-            full_log += f"{'='*60}\n\n"
-            full_log += "PROCESSING LOG:\n"
-            full_log += log_content
-            full_log += "\n\nDETAILED RESULTS:\n"
-            full_log += results_content
-            
-            # Save to file
-            original_path = self.selected_file.get()
-            base = os.path.splitext(original_path)[0]
-            log_path = f"{base}_processing_log.txt"
-            
-            with open(log_path, 'w', encoding='utf-8') as f:
-                f.write(full_log)
-            
-            messagebox.showinfo("Success", f"Processing log exported to:\n{log_path}")
-            
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to export log: {str(e)}")
     
     def run(self):
         """Start the application"""
