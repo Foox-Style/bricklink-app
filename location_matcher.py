@@ -57,11 +57,12 @@ class LocationMatcher:
             return False, f"Error loading inventory: {e}"
     
     def find_best_location_for_item(self, bsx_item: BSXItem) -> Optional[str]:
-        """Find the best storage location for a BSX item based on existing inventory"""
+        """Find the best storage location for a BSX item based on color-aware logic"""
         if not self.inventory_loaded:
             return None
         
         item_id = bsx_item.item_id
+        item_color_id = str(bsx_item.color_id) if hasattr(bsx_item, 'color_id') else '0'
         
         if item_id not in self.inventory_locations:
             return None
@@ -71,22 +72,77 @@ class LocationMatcher:
         if not locations:
             return None
         
-        # Strategy: Find most frequently used location for this item ID
-        # Ignore color and condition differences as per requirements
+        # Analyze existing locations for this item
+        location_analysis = {}
+        
+        for entry in locations:
+            location = entry['location']
+            entry_color_id = str(entry['color_id'])
+            quantity = entry['quantity']
+            
+            if location not in location_analysis:
+                location_analysis[location] = {
+                    'colors': set(),
+                    'total_quantity': 0,
+                    'color_quantities': {}
+                }
+            
+            location_analysis[location]['colors'].add(entry_color_id)
+            location_analysis[location]['total_quantity'] += quantity
+            location_analysis[location]['color_quantities'][entry_color_id] = location_analysis[location]['color_quantities'].get(entry_color_id, 0) + quantity
+        
+        # Apply color-based location assignment logic
+        
+        # Step 1: Check if a dedicated location exists for this color
+        for location, analysis in location_analysis.items():
+            if len(analysis['colors']) == 1 and item_color_id in analysis['colors']:
+                self.logger.debug(f"Item {item_id} color {item_color_id}: Found dedicated color location '{location}'")
+                return location
+        
+        # Step 2: Check if only one location exists for this item
+        if len(location_analysis) == 1:
+            location = list(location_analysis.keys())[0]
+            self.logger.debug(f"Item {item_id} color {item_color_id}: Only one location exists '{location}', assigning there")
+            return location
+        
+        # Step 3: Check if multiple single-color locations exist
+        single_color_locations = []
+        mixed_color_locations = []
+        
+        for location, analysis in location_analysis.items():
+            if len(analysis['colors']) == 1:
+                single_color_locations.append((location, analysis['total_quantity']))
+            else:
+                mixed_color_locations.append((location, analysis['total_quantity']))
+        
+        # If we have multiple single-color locations, assign to the least populated one
+        if len(single_color_locations) >= 2:
+            single_color_locations.sort(key=lambda x: x[1])  # Sort by quantity (ascending)
+            best_location = single_color_locations[0][0]
+            self.logger.debug(f"Item {item_id} color {item_color_id}: Multiple single-color locations found, assigning to least populated '{best_location}'")
+            return best_location
+        
+        # Step 4: If dedicated color location exists for different color, assign to mixed location
+        dedicated_locations_exist = len(single_color_locations) > 0
+        if dedicated_locations_exist and mixed_color_locations:
+            # Find the most used mixed location
+            mixed_color_locations.sort(key=lambda x: x[1], reverse=True)  # Sort by quantity (descending)
+            best_location = mixed_color_locations[0][0]
+            self.logger.debug(f"Item {item_id} color {item_color_id}: Dedicated locations exist for other colors, assigning to mixed location '{best_location}'")
+            return best_location
+        
+        # Step 5: Fallback to most frequently used location (original behavior)
         location_counts = Counter()
         
         for entry in locations:
             location = entry['location']
             quantity = entry['quantity']
-            # Weight by quantity - more frequently stocked items influence the choice
             location_counts[location] += quantity
         
-        # Return the most common location
         most_common = location_counts.most_common(1)
         if most_common:
             best_location = most_common[0][0]
-            self.logger.debug(f"Item {item_id}: Found best location '{best_location}' "
-                            f"(used {most_common[0][1]} times)")
+            self.logger.debug(f"Item {item_id} color {item_color_id}: Fallback to most common location '{best_location}'")
             return best_location
         
         return None
@@ -243,7 +299,7 @@ def main():
                 if results['assignment_details']:
                     print(f"\nWould assign locations:")
                     for detail in results['assignment_details']:
-                        print(f"  {detail['item_name']} → '{detail['assigned_location']}'")
+                        print(f"  {detail['item_name']} -> '{detail['assigned_location']}'")
                 
                 if results['items_without_matches']:
                     print(f"\nItems without matches:")
