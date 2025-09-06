@@ -19,7 +19,9 @@
       "Bash(git push:*)",
       "Bash(git restore:*)",
       "Bash(timeout:*)",
-      "Bash(del debug_order_items.py)"
+      "Bash(del debug_order_items.py)",
+      "Bash(start_app.bat)",
+      "Bash(del debug_minifigure.py test_fix.py)"
     ],
     "deny": [],
     "ask": []

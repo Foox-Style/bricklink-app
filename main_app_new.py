@@ -112,7 +112,7 @@ class BrickLinkToolsApp:
         tools_info = [
             ("feature1", "📦 Location Assignment"),
             ("feature2", "📊 Restock Analysis"), 
-            ("feature3", "⚡ Feature 3")
+            ("feature3", "🔧 Minifigure Builder")
         ]
         
         for tool_id, tool_name in tools_info:

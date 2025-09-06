@@ -207,6 +207,93 @@ class BrickLinkAPI:
             return True, data.get('data', [])
         else:
             return False, data.get('error', 'Failed to fetch order items')
+    
+    def get_item_subsets(self, item_type: str, item_id: str) -> Tuple[bool, List[Dict]]:
+        """Get subsets (part lists) for an item - used for minifigure parts
+        
+        Args:
+            item_type: Item type ('MINIFIG', 'SET', etc. or short codes like 'M', 'S')
+            item_id: Item ID to get subsets for
+        """
+        # Convert short codes to full type names for the API
+        type_mapping = {
+            'P': 'PART',
+            'M': 'MINIFIG', 
+            'S': 'SET',
+            'B': 'BOOK',
+            'G': 'GEAR',
+            'I': 'INSTRUCTION',
+            'O': 'ORIGINAL_BOX'
+        }
+        
+        api_type = type_mapping.get(item_type, item_type).lower()
+        endpoint = f"/items/{api_type}/{item_id}/subsets"
+        success, data = self._make_request(endpoint)
+        
+        if success:
+            return True, data.get('data', [])
+        else:
+            return False, data.get('error', f'Failed to fetch subsets for {api_type}/{item_id}')
+    
+    def get_superset_items(self, item_type: str, item_id: str, color_id: str = None) -> Tuple[bool, List[Dict]]:
+        """Get supersets - items that contain this part (used to find minifigures containing a torso)
+        
+        Args:
+            item_type: Item type of the part ('PART', 'MINIFIG', 'SET', etc.)
+            item_id: Part ID to search for
+            color_id: Optional color filter
+        """
+        # Convert short codes to full type names for the API
+        type_mapping = {
+            'P': 'PART',
+            'M': 'MINIFIG', 
+            'S': 'SET',
+            'B': 'BOOK',
+            'G': 'GEAR',
+            'I': 'INSTRUCTION',
+            'O': 'ORIGINAL_BOX'
+        }
+        
+        api_type = type_mapping.get(item_type, item_type).lower()
+        endpoint = f"/items/{api_type}/{item_id}/supersets"
+        
+        params = {}
+        if color_id:
+            params['color_id'] = color_id
+        
+        success, data = self._make_request(endpoint, params=params)
+        
+        if success:
+            return True, data.get('data', [])
+        else:
+            return False, data.get('error', f'Failed to fetch supersets for {api_type}/{item_id}')
+    
+    def get_item_info(self, item_type: str, item_id: str) -> Tuple[bool, Dict]:
+        """Get information about a specific item
+        
+        Args:
+            item_type: Item type ('PART', 'MINIFIG', etc. or short codes like 'P', 'M')
+            item_id: Item ID
+        """
+        # Convert short codes to full type names for the API
+        type_mapping = {
+            'P': 'PART',
+            'M': 'MINIFIG', 
+            'S': 'SET',
+            'B': 'BOOK',
+            'G': 'GEAR',
+            'I': 'INSTRUCTION',
+            'O': 'ORIGINAL_BOX'
+        }
+        
+        api_type = type_mapping.get(item_type, item_type).lower()
+        endpoint = f"/items/{api_type}/{item_id}"
+        success, data = self._make_request(endpoint)
+        
+        if success:
+            return True, data.get('data', {})
+        else:
+            return False, data.get('error', f'Failed to fetch info for {api_type}/{item_id}')
 
 def create_sample_config():
     """Create a sample configuration file"""

@@ -13,6 +13,18 @@ class LocationMatcher:
         self.inventory_locations = {}  # item_id -> list of locations with counts
         self.inventory_loaded = False
     
+    def _get_location_priority(self, location: str) -> int:
+        """Get priority for location based on leading character. R=0 (highest), S=1, others=2 (lowest)"""
+        if not location:
+            return 2
+        first_char = location[0].upper()
+        if first_char == 'R':
+            return 0
+        elif first_char == 'S':
+            return 1
+        else:
+            return 2
+    
     def load_inventory_locations(self) -> Tuple[bool, str]:
         """Load and process inventory data from BrickLink API"""
         try:
@@ -57,7 +69,7 @@ class LocationMatcher:
             return False, f"Error loading inventory: {e}"
     
     def find_best_location_for_item(self, bsx_item: BSXItem) -> Optional[str]:
-        """Find the best storage location for a BSX item based on color-aware logic"""
+        """Find the best storage location for a BSX item based on color-aware logic with R -> S -> Remainder prioritization"""
         if not self.inventory_loaded:
             return None
         
@@ -115,23 +127,23 @@ class LocationMatcher:
             else:
                 mixed_color_locations.append((location, analysis['total_quantity']))
         
-        # If we have multiple single-color locations, assign to the least populated one
+        # If we have multiple single-color locations, prioritize R -> S -> others, then by quantity
         if len(single_color_locations) >= 2:
-            single_color_locations.sort(key=lambda x: x[1])  # Sort by quantity (ascending)
+            single_color_locations.sort(key=lambda x: (self._get_location_priority(x[0]), x[1]))  # Sort by priority first, then quantity
             best_location = single_color_locations[0][0]
-            self.logger.debug(f"Item {item_id} color {item_color_id}: Multiple single-color locations found, assigning to least populated '{best_location}'")
+            self.logger.debug(f"Item {item_id} color {item_color_id}: Multiple single-color locations found, assigning to priority location '{best_location}'")
             return best_location
         
         # Step 4: If dedicated color location exists for different color, assign to mixed location
         dedicated_locations_exist = len(single_color_locations) > 0
         if dedicated_locations_exist and mixed_color_locations:
-            # Find the most used mixed location
-            mixed_color_locations.sort(key=lambda x: x[1], reverse=True)  # Sort by quantity (descending)
+            # Prioritize R -> S -> others, then by quantity (descending)
+            mixed_color_locations.sort(key=lambda x: (self._get_location_priority(x[0]), -x[1]))  # Priority first, then quantity descending
             best_location = mixed_color_locations[0][0]
-            self.logger.debug(f"Item {item_id} color {item_color_id}: Dedicated locations exist for other colors, assigning to mixed location '{best_location}'")
+            self.logger.debug(f"Item {item_id} color {item_color_id}: Dedicated locations exist for other colors, assigning to priority mixed location '{best_location}'")
             return best_location
         
-        # Step 5: Fallback to most frequently used location (original behavior)
+        # Step 5: Fallback to most frequently used location with R -> S -> others priority
         location_counts = Counter()
         
         for entry in locations:
@@ -139,10 +151,11 @@ class LocationMatcher:
             quantity = entry['quantity']
             location_counts[location] += quantity
         
-        most_common = location_counts.most_common(1)
-        if most_common:
-            best_location = most_common[0][0]
-            self.logger.debug(f"Item {item_id} color {item_color_id}: Fallback to most common location '{best_location}'")
+        # Sort by priority first, then by quantity descending
+        sorted_locations = sorted(location_counts.items(), key=lambda x: (self._get_location_priority(x[0]), -x[1]))
+        if sorted_locations:
+            best_location = sorted_locations[0][0]
+            self.logger.debug(f"Item {item_id} color {item_color_id}: Fallback to priority location '{best_location}'")
             return best_location
         
         return None

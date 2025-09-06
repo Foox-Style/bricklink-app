@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="UTF-8"?>
 <BrickStoreXML>
   <Inventory>
     <Item>
@@ -12,7 +12,7 @@
       <Qty>10</Qty>
       <Price>0.50</Price>
       <Condition>N</Condition>
-      <Remarks>TEST-LOC-</Remarks>
+      <Remarks>TEST-LOC-3001</Remarks>
     </Item>
     <Item>
       <ItemID>3024</ItemID>
@@ -25,7 +25,7 @@
       <Qty>25</Qty>
       <Price>0.10</Price>
       <Condition>N</Condition>
-      <Remarks>TEST-LOC-</Remarks>
+      <Remarks>TEST-LOC-3024</Remarks>
     </Item>
     <Item>
       <ItemID>973</ItemID>
